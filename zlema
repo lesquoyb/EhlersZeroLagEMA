@@ -1,0 +1,32 @@
+//@version=3
+strategy("Zero Lag EMA", overlay=true)
+
+length = input(32, type=integer, title="Période")
+limit = input(22, type=float, title="limite")
+thresh = input(0.75, type=float, title="facteur de délimitation")
+
+alpha = 2.0 / (length + 1)
+
+e = ema(close, length)
+
+leastError = 1000000.0
+bestGain = 0.0
+ec = alpha
+
+b = for value1 = -limit to limit [1]
+    gain = value1 / 10.0
+    tmp_ec = alpha *(e + gain*(close - nz(ec[1]))) + (1 - alpha)*nz(ec[1])
+    error = close - tmp_ec
+    if (abs(error) < leastError)
+        leastError := abs(error)
+        bestGain := gain
+    bestGain
+ec := alpha * (e + b*(close - nz(ec[1]))) + (1 - alpha)*nz(ec[1])
+
+plot(ec, color=blue, linewidth=2)
+plot(e, color=red, linewidth=2)
+
+if(ec > e and  100*leastError/close > thresh)
+    strategy.entry("long", true)
+if(ec < e and 100*leastError/close > thresh)
+    strategy.entry("short", false)
